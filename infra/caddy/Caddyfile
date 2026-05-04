@@ -1,0 +1,101 @@
+# ============================================================================
+# Caddy Reverse Proxy Configuration for INSPECT-AI
+# ============================================================================
+# This handles:
+# - Automatic HTTPS/SSL certificates from Let's Encrypt
+# - Reverse proxy to Next.js frontend
+# - API proxying to FastAPI backend
+# ============================================================================
+
+# Replace {$DOMAIN} with your actual domain (set via environment variable)
+# Example: inspect-ai.123.45.67.89.sslip.io
+{$DOMAIN} {
+    # Enable automatic HTTPS
+    # Caddy will automatically get SSL certificate from Let's Encrypt
+
+    # Enable gzip compression
+    encode gzip zstd
+
+    # Security headers
+    header {
+        # Force HTTPS for 1 year (HSTS)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Enable XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Remove server info
+        -Server
+    }
+
+    # PostHog Analytics Proxy (using unique path to bypass ad blockers)
+    # Note: /ingest is commonly blocked, so we use /ph-metrics instead
+    handle_path /ph-metrics/static* {
+        rewrite * /static/{path}
+        reverse_proxy https://eu-assets.i.posthog.com:443 {
+            header_up Host eu-assets.i.posthog.com
+            header_down -Access-Control-Allow-Origin
+        }
+    }
+
+    handle_path /ph-metrics* {
+        rewrite * {path}
+        reverse_proxy https://eu.i.posthog.com:443 {
+            header_up Host eu.i.posthog.com
+            header_down -Access-Control-Allow-Origin
+        }
+    }
+
+    # API routes - proxy to FastAPI backend
+    handle /api/v1/* {
+        reverse_proxy api:8000 {
+            # Health check
+            health_uri /
+            health_interval 30s
+            health_timeout 10s
+
+            # Forward real IP
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Internal API proxy (Next.js server-side calls)
+    handle /api/internal/* {
+        reverse_proxy nextjs:3000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Everything else goes to Next.js frontend
+    handle /* {
+        reverse_proxy nextjs:3000 {
+            # Health check
+            health_uri /
+            health_interval 30s
+            health_timeout 10s
+
+            # Forward real IP
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Logging (helpful for debugging)
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+}
+
+# HTTP to HTTPS redirect (automatic)
+http://{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}

@@ -1,0 +1,5 @@
+workspaces = [
+  "apps/ui",
+  "packages/js/ui",
+  "packages/js/api-client"
+]

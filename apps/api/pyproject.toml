@@ -1,0 +1,59 @@
+[project]
+name = "inspect-ai-api"
+version = "0.1.0"
+description = "Backend for INSPECT-AI App"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "alembic",
+    "arq>=0.25,<0.27",
+    "psycopg[binary]",
+    "httpx",
+    "httpx[http2]",
+    "aiohttp",
+    "python-dateutil",
+    "beautifulsoup4",
+    "google-genai>=1.15.0",
+    "jsonref",
+    "aiofiles",
+    "python-multipart",
+    "logfire>=3.16.0", # Base only - auto-instruments without extras
+    "lxml>=6.0.0",
+    "tenacity>=8.5.0",
+    "requests>=2.32.4",
+    "certifi>=2025.7.14",
+    "inspect-ai-core",
+    "python-jose[cryptography]",
+    "slowapi>=0.1.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-xdist",  # For parallel testing
+    "httpx",
+    "ruff",
+    "mypy",
+    "pre-commit",  # Lightweight pre-commit hooks
+]
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["api*"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.uv.sources]
+inspect-ai-core = { path = "../../packages/python/core", editable = true }

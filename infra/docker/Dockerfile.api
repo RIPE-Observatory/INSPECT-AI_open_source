@@ -1,0 +1,82 @@
+# Dependencies stage - rebuild only when dependencies change
+ARG PYTHON_IMAGE=python:3.12-slim
+FROM ${PYTHON_IMAGE} AS deps
+
+# Copy uv from official image
+COPY --from=ghcr.io/astral-sh/uv:0.4.26 /uv /uvx /bin/
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+WORKDIR /workspace/apps/api
+
+# No system packages needed at build-time for API
+RUN rm -rf /var/lib/apt/lists/*
+
+# Copy only dependency files first (better layer caching per uv best practices)
+COPY apps/api/pyproject.toml ./pyproject.toml
+COPY apps/api/uv.lock ./uv.lock
+# Copy local packages (needed for uv to resolve path dependencies)
+COPY packages/python/core /workspace/packages/python/core
+
+# Install dependencies ONLY (not project itself yet) - cached layer
+RUN --mount=type=cache,target=/root/.cache/uv \
+    if [ ! -f uv.lock ]; then \
+        uv lock; \
+    fi && \
+    uv sync --frozen --no-install-project --no-dev
+
+# API does not require Playwright browsers; keep image small
+
+# Runtime stage
+FROM ${PYTHON_IMAGE} AS runtime
+
+# Minimal runtime packages only with BuildKit cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* \
+    && apt-get -o Acquire::Retries=3 -o Acquire::http::No-Cache=true -o Acquire::http::Pipeline-Depth="0" clean \
+    && apt-get -o Acquire::Retries=3 -o Acquire::http::No-Cache=true -o Acquire::http::Pipeline-Depth="0" update \
+    && apt-get install -y --no-install-recommends --fix-missing \
+    ca-certificates
+
+# Create non-root user
+RUN groupadd -g 999 -r appuser || true \
+    && useradd -u 999 -r -g 999 appuser || true
+
+# Create directories and set permissions
+RUN mkdir -p /app/pdf_storage /home/appuser/.cache && \
+    chown -R appuser:appuser /app/pdf_storage /home/appuser
+
+# Copy virtual environment from deps stage
+COPY --from=deps --chown=appuser:appuser /workspace/apps/api/.venv /app/.venv
+
+# Set environment
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/src:/app/packages/python" \
+    HOME="/home/appuser"
+
+WORKDIR /app
+
+# Copy application code and config
+COPY --chown=appuser:appuser apps/api/src/ /app/src/
+COPY --chown=appuser:appuser packages/python/core /app/packages/python/core
+COPY --chown=appuser:appuser apps/api/alembic.ini apps/api/pyproject.toml /app/
+COPY --chown=appuser:appuser apps/api/alembic/ /app/alembic/
+COPY --chown=appuser:appuser var/data/ /app/var/data/
+
+USER appuser
+
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+LABEL org.opencontainers.image.source="https://github.com/your-org/inspect-ai" \
+      org.opencontainers.image.description="INSPECT-AI API service" \
+      org.opencontainers.image.licenses="Proprietary"

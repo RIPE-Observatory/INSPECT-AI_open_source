@@ -1,0 +1,36 @@
+[project]
+name = "inspect-ai-core"
+version = "0.1.0"
+description = "Core domain logic and shared services for INSPECT AI"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "arq>=0.25,<0.27",
+    "psycopg[binary]",
+    "httpx",
+    "httpx[http2]",
+    "aiohttp",
+    "beautifulsoup4",
+    "python-dateutil",
+    "google-genai>=1.15.0",
+    "aiofiles",
+    "logfire[sqlalchemy,psycopg,httpx]>=3.16.0",
+    "lxml>=6.0.0",
+    "tenacity>=8.5.0",
+    "PyYAML>=6.0",  # Required for dynamic check registry
+    "cachetools>=5.3.0",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*"]

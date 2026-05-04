@@ -1,0 +1,63 @@
+# Test environment for INSPECT-AI
+# Isolated from production with separate ports and lighter resource limits
+
+networks:
+  test-network:
+    driver: bridge
+    name: inspect-ai-test-network
+
+services:
+  # Test Database
+  test-postgres:
+    image: postgres:16-alpine
+    container_name: inspect_ai_test_postgres
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_inspect_ai
+    ports:
+      - "${TEST_POSTGRES_PORT:-5433}:5432"  # Matches pytest default, configurable
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_inspect_ai"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - test-network
+
+  # Test Redis
+  test-redis:
+    image: redis:7-alpine
+    container_name: inspect_ai_test_redis
+    ports:
+      - "6380:6379"  # Different port from production
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test-network
+
+volumes:
+  test_postgres_data:
+    driver: local

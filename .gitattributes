@@ -1,0 +1,30 @@
+# Exclude minified files and generated code from language statistics
+*.min.js linguist-vendored
+**/pdf.worker*.js linguist-vendored
+
+# Exclude vendor JavaScript from language statistics
+node_modules/** linguist-vendored
+.venv/** linguist-vendored
+**/.venv/** linguist-vendored
+**/node_modules/** linguist-vendored
+packages/python/**/*.js linguist-vendored
+packages/python/**/*.min.js linguist-vendored
+
+# Mark linter configs and build configs as configuration files
+tools/linters/*.js linguist-language=JSON
+packages/*/.eslintrc.js linguist-language=JSON
+**/.eslintrc.js linguist-language=JSON
+*.config.js linguist-language=JSON
+*.config.mjs linguist-language=JSON
+*.config.cjs linguist-language=JSON
+eslint.config.mjs linguist-language=JSON
+postcss.config.mjs linguist-language=JSON
+
+# Force TypeScript and Python as primary languages
+*.ts linguist-detectable=true
+*.tsx linguist-detectable=true
+*.py linguist-detectable=true
+
+# Don't count JavaScript files in source (we only write TypeScript)
+apps/ui/**/*.js linguist-generated=true
+packages/js/**/*.js linguist-generated=true

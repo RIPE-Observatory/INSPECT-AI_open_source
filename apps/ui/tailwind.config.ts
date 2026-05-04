@@ -1,0 +1,45 @@
+import type { Config } from "tailwindcss";
+
+export default {
+  content: [
+    "./src/**/*.{ts,tsx}",
+    "../../packages/js/ui/src/**/*.{ts,tsx}",
+  ],
+  theme: {
+    spacing: {
+      0: "var(--space-0)",
+      1: "var(--space-1)",
+      2: "var(--space-2)",
+      3: "var(--space-3)",
+      4: "var(--space-4)",
+      5: "var(--space-5)",
+      6: "var(--space-6)",
+      7: "var(--space-7)",
+      8: "var(--space-8)",
+      9: "var(--space-9)",
+      10: "var(--space-10)",
+      12: "var(--space-12)",
+      14: "var(--space-14)",
+      16: "var(--space-16)",
+      20: "var(--space-20)",
+      // Preserve Tailwind defaults for values not in design system
+      px: "1px",
+      0.5: "0.125rem",
+      1.5: "0.375rem",
+      2.5: "0.625rem",
+      3.5: "0.875rem",
+      11: "2.75rem",
+      13: "3.25rem",
+      15: "3.75rem",
+      24: "6rem",
+      32: "8rem",
+      40: "10rem",
+      48: "12rem",
+      56: "14rem",
+      64: "16rem",
+      72: "18rem",
+      80: "20rem",
+      96: "24rem",
+    },
+  },
+} satisfies Config;

@@ -1,0 +1,33 @@
+{
+  "name": "inspect-ai-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/ui",
+    "packages/js/ui",
+    "packages/js/api-client"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/ui dev",
+    "build": "bun run --cwd apps/ui build",
+    "lint": "bun run lint:js && bun run lint:py",
+    "lint:js": "bun run --cwd apps/ui lint",
+    "lint:py": "uv run --project apps/api --extra dev ruff check apps/api/src packages/python/core",
+    "typecheck": "bun run typecheck:js && bun run typecheck:py",
+    "typecheck:js": "bun run --cwd apps/ui typecheck",
+    "typecheck:py": "pyright",
+    "format": "bun run format:js && bun run format:py",
+    "format:js": "bun run --cwd apps/ui format",
+    "format:py": "uv run --project apps/api --extra dev ruff format apps/api/src packages/python/core",
+    "test": "bun run test:js && bun run test:py",
+    "test:js": "bun run --cwd apps/ui test",
+    "test:py": "uv run --project apps/api --extra dev pytest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "pyright": "^1.1.408"
+  },
+  "packageManager": "bun@1.2.22",
+  "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.18.3"
+  }
+}

@@ -1,0 +1,343 @@
+# my personal version for my personal pc with allocated 10gb ram and 8gb swap with caching
+# currently we are running CRF lightweight models with 4gb memory
+# always check the memory after jobs and restart the container if needed to clean up
+
+networks:
+  inspect-ai-network:
+    driver: bridge
+    name: inspect-ai-network
+
+services:
+  # initialize volumes with permissions for api and worker
+  init-volumes:
+    image: busybox
+    user: root
+    command: |
+      sh -c "
+        mkdir -p /pdf_storage
+        chown -R 999:999 /pdf_storage
+        chmod -R 755 /pdf_storage
+      "
+    volumes:
+      - pdf_storage:/pdf_storage
+    networks:
+      - inspect-ai-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: inspect_ai_postgres
+    user: "999:999"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Secure authentication with proper credentials
+      POSTGRES_USER: ${POSTGRES_USER:-inspect_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-inspect_ai}
+    ports:
+      # Map host port ${POSTGRES_PORT} (default 5432) to container port 5432
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist DB data
+    mem_limit: "512m"
+    cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-inspect_user} -d $${POSTGRES_DB:-inspect_ai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - inspect-ai-network
+
+  redis:
+    image: redis:7.4-alpine3.21
+    container_name: inspect_ai_redis
+    user: "redis"
+    ports:
+      # Map host port ${REDIS_PORT} (default 6379) to container port 6379
+      - "${REDIS_PORT:-6379}:6379"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+    read_only: true
+    volumes:
+      - redis_data:/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    mem_limit: "128m"
+    cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - inspect-ai-network
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
+    container_name: inspect_ai_api
+    image: inspect-ai-api:latest
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      # Map host port ${API_PORT} (default 8000) to container port 8000 (Uvicorn)
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage # Mount shared PDF volume
+    shm_size: "1gb"
+    mem_limit: "1500m"
+    cpus: "1.0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Harden runtime: read-only root with explicit tmpfs for writable paths
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/appuser/.cache:rw,noexec,nosuid
+    cap_drop:
+      - NET_RAW
+    networks:
+      - inspect-ai-network
+
+  # worker image builder (run with: docker compose build worker-image)
+  worker-image:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
+    image: inspect-ai-worker:latest
+    profiles: ["build"]  # Only builds when explicitly requested
+
+  # worker services (use pre-built worker-image)
+  worker-orchestrator:
+    user: "999:999"
+    image: inspect-ai-worker:latest
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue:orchestrator
+      - WORKER_MAX_JOBS=2
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage
+    shm_size: "1gb"
+    mem_limit: "1500m"
+    cpus: "0.5"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/worker/.cache:rw,noexec,nosuid
+    networks:
+      - inspect-ai-network
+
+  # Default queue workers - scaled to 2 instances for better concurrency
+  worker-default-1:
+    user: "999:999"
+    image: inspect-ai-worker:latest
+    container_name: inspect_ai_worker_default_1
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue
+      - WORKER_MAX_JOBS=2
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage
+    shm_size: "1gb"
+    mem_limit: "1500m"
+    cpus: "1.0"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/worker/.cache:rw,noexec,nosuid
+    networks:
+      - inspect-ai-network
+
+  worker-default-2:
+    user: "999:999"
+    image: inspect-ai-worker:latest
+    container_name: inspect_ai_worker_default_2
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue
+      - WORKER_MAX_JOBS=2
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage
+    shm_size: "1gb"
+    mem_limit: "1500m"
+    cpus: "1.0"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/worker/.cache:rw,noexec,nosuid
+    networks:
+      - inspect-ai-network
+
+  # Dedicated worker for GROBID tasks (Check 4/5)
+  worker-grobid:
+    user: "999:999"
+    image: inspect-ai-worker:latest
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue:grobid
+      - WORKER_MAX_JOBS=1
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      grobid:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage
+    shm_size: "1gb"
+    mem_limit: "1500m"
+    cpus: "1.0"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/worker/.cache:rw,noexec,nosuid
+    networks:
+      - inspect-ai-network
+
+  # GROBID service for PDF extraction - development configuration
+  grobid:
+    image: inspect-ai-grobid:0.8.2  # Built locally with curl/wget for healthcheck
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.grobid
+    container_name: inspect_ai_grobid
+    ports:
+      - "${GROBID_PORT:-8070}:8070"  # Main API
+      - "8071:8071"                  # Admin console for monitoring
+    volumes:
+      # Cache directory for faster processing
+      - grobid_cache:/opt/grobid/grobid-home/tmp
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Java memory settings - CRF
+      - JAVA_OPTS=-Xmx1500m -Xms512m -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
+
+      # GROBID server settings - from .env
+      - GROBID_THREADS=${GROBID_THREADS:-4}
+      - GROBID_POOL_MAX_WAIT=${GROBID_POOL_MAX_WAIT:-120}
+
+      # Critical: Disable model preloading for memory efficiency
+      - grobid__models__modelPreload=false
+
+      # PDF processing limits - from .env
+      - grobid__3rdparty__pdf2xml__memory__limit__mb=${PDF_MEMORY_LIMIT:-1024}
+
+      # Crossref consolidation email for polite API usage
+      - grobid__consolidation__crossref__mailto=inspect-ai@example.com
+
+    mem_limit: "${GROBID_CONTAINER_MEMORY:-2g}"
+    cpus: "${GROBID_CONTAINER_CPUS:-1.0}"
+
+    # runtime: nvidia  # GPU not needed for CRF models enable when using full docker image
+
+    healthcheck:
+      test: ["CMD-SHELL", "(curl -fsS http://localhost:8070/api/isalive >/dev/null) || (wget -qO- http://localhost:8070/api/isalive >/dev/null) || exit 1"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 120s  # Allow time for lazy loading
+
+    restart: unless-stopped
+    networks:
+      - inspect-ai-network
+
+    # Development-friendly logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"    # Larger logs for development debugging
+        max-file: "5"      # Keep more log files
+
+    # Critical stability settings
+    init: true
+    ulimits:
+      core: 0
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pdf_storage: # volume for PDFs
+    driver: local
+  grobid_cache: # cache volume for GROBID
+    driver: local

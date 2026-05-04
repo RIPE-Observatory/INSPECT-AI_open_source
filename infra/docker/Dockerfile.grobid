@@ -1,0 +1,19 @@
+FROM grobid/grobid:0.8.2-crf
+
+USER root
+
+# Install healthcheck tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl wget ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove unused DL model files (keep only CRF Wapiti models)
+RUN cd /opt/grobid/grobid-home/models && \
+    # Remove DL model directories
+    rm -rf *-BidLSTM* *-with_ELMo *_gru *_bert && \
+    # Remove training scripts (not needed for inference)
+    rm -rf /opt/grobid/grobid-home/scripts/*.py && \
+    echo "Cleaned DL models, kept only CRF Wapiti models"
+
+# Keep default entrypoint/cmd from base image

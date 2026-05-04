@@ -1,0 +1,86 @@
+# Root-level Docker ignore for all builds (API, workers, graph init)
+
+# === Git & CI ===
+.git
+.gitignore
+.gitattributes
+.github/
+
+# === Environment & secrets ===
+.env
+.env.*
+!.env.example
+apps/ui/.env*
+!apps/ui/.env.example
+
+# === Node/Bun artifacts ===
+node_modules
+**/node_modules
+**/.turbo/
+**/.next/
+**/.cache/
+# bun.lock needed for Next.js Docker build
+# **/bun.lock
+**/bun.lockb
+**/package-lock.json
+
+# === Python virtualenvs & caches ===
+**/.venv/
+**/venv/
+**/ENV/
+**/env/
+# Explicitly exclude venv from packages directory (600MB!)
+packages/python/**/.venv/
+packages/python/**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/build/
+**/dist/
+**/*.egg-info/
+
+# === Test outputs & coverage ===
+**/coverage/
+**/htmlcov/
+**/.coverage*
+**/reports/
+
+# === Generated assets ===
+pdf_storage/
+r_plots/
+tmp/
+tmp
+var/
+!var/data/
+!var/data/retraction_watch.csv
+.git
+.git/
+
+# === Docs & misc ===
+docs/
+*.md
+LICENSE
+CLAUDE.md
+
+# === IDE/editor clutter ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# === Docker internals ===
+Dockerfile*
+.dockerignore
+
+# === Allowlisted paths ===
+!apps/api/**
+!apps/worker/**
+!packages/python/**
+!infra/**
+!docker-compose.yml
+!docker-compose.test.yml
+!pyproject.toml
+!README.md

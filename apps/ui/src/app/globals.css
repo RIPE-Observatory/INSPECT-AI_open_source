@@ -1,0 +1,700 @@
+@import "tailwindcss";
+
+/* React PDF Viewer Styles */
+@import "@react-pdf-viewer/core/lib/styles/index.css";
+@import "@react-pdf-viewer/default-layout/lib/styles/index.css";
+
+/* ============================
+   Design Tokens (Tailwind @theme)
+   ============================ */
+@theme {
+  /* Typography */
+  --font-sans: var(--font-geist-sans, "Geist"), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono, "Geist Mono"), ui-monospace, "Cascadia Code",
+    "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 800;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.05em;
+  --tracking-widest: 0.12em;
+
+  --font-size-display-xl: clamp(2.9rem, 2.2rem + 2.2vw, 4rem);
+  --font-line-height-display-xl: 1.05;
+  --font-size-display-lg: clamp(2.5rem, 2rem + 1.8vw, 3.5rem);
+  --font-line-height-display-lg: 1.08;
+  --font-size-heading-xl: clamp(2rem, 1.75rem + 1vw, 2.75rem);
+  --font-line-height-heading-xl: 1.15;
+  --font-size-heading-lg: clamp(1.625rem, 1.45rem + 0.8vw, 2.25rem);
+  --font-line-height-heading-lg: 1.2;
+  --font-size-heading-md: 1.375rem;
+  --font-line-height-heading-md: 1.25;
+  --font-size-heading-sm: 1.2rem;
+  --font-line-height-heading-sm: 1.35;
+
+  --font-size-body-lg: 1.125rem;
+  --font-line-height-body-lg: 1.75;
+  --font-size-body-md: 1rem;
+  --font-line-height-body-md: 1.65;
+  --font-size-body-sm: 0.875rem;
+  --font-line-height-body-sm: 1.5;
+  --font-size-body-xs: 0.75rem;
+  --font-line-height-body-xs: 1.35;
+
+  --font-size-label-sm: 0.75rem;
+  --font-line-height-label-sm: 1.2;
+
+  --font-size-code: 0.875rem;
+  --font-line-height-code: 1.45;
+
+  /* Radii */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2.75rem;
+  --radius-full: 999px;
+
+  /* Spacing scale (4px base) */
+  --spacing-base: 0.25rem;
+  --space-0: 0rem;
+  --space-1: calc(var(--spacing-base) * 1); /* 0.25rem */
+  --space-2: calc(var(--spacing-base) * 2); /* 0.5rem */
+  --space-3: calc(var(--spacing-base) * 3); /* 0.75rem */
+  --space-4: calc(var(--spacing-base) * 4); /* 1rem */
+  --space-5: calc(var(--spacing-base) * 5); /* 1.25rem */
+  --space-6: calc(var(--spacing-base) * 6); /* 1.5rem */
+  --space-7: calc(var(--spacing-base) * 7); /* 1.75rem */
+  --space-8: calc(var(--spacing-base) * 8); /* 2rem */
+  --space-9: calc(var(--spacing-base) * 9); /* 2.25rem */
+  --space-10: calc(var(--spacing-base) * 10); /* 2.5rem */
+  --space-12: calc(var(--spacing-base) * 12); /* 3rem */
+  --space-14: calc(var(--spacing-base) * 14); /* 3.5rem */
+  --space-16: calc(var(--spacing-base) * 16); /* 4rem */
+  --space-20: calc(var(--spacing-base) * 20); /* 5rem */
+
+  /* Border widths */
+  --border-width-hairline: 1px;
+  --border-width-thin: 1.5px;
+  --border-width-base: 2px;
+  --border-width-thick: 3px;
+
+  /* Opacity */
+  --opacity-disabled: 0.6;
+  --opacity-muted: 0.75;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 1px rgb(8 11 26 / 0.35);
+  --shadow-sm: 0 1px 2px rgb(8 11 26 / 0.4);
+  --shadow-md: 0 8px 24px rgb(8 11 26 / 0.32);
+  --shadow-lg: 0 20px 50px rgb(8 11 26 / 0.4);
+  --shadow-xl: 0 40px 65px rgb(8 11 26 / 0.38);
+
+  /* Blur */
+  --blur-overlay: 24px;
+  --blur-popover: 16px;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-dropdown: 1000;
+  --z-sticky: 1010;
+  --z-overlay: 1040;
+  --z-modal: 1100;
+  --z-popover: 1200;
+  --z-toast: 1300;
+
+  /* Motion */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-bounce: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-expressive: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-instant: 120ms;
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+  --duration-linger: 600ms;
+
+  --motion-distance-sm: 8px;
+  --motion-distance-md: 16px;
+  --motion-distance-lg: 32px;
+
+  /* Core palette (OKLCH dark) */
+  --color-background-raw: 0.16 0.01 260;
+  --color-surface-raw: 0.2 0.01 260;
+  --color-surface-elevated-raw: 0.24 0.015 260;
+  --color-surface-overlay-raw: 0.3 0.02 260;
+
+  --color-foreground-raw: 0.985 0 0;
+  --color-foreground-muted-raw: 0.68 0.02 260;
+
+  --color-border-raw: 0.32 0.015 260;
+  --color-border-strong-raw: 0.42 0.025 260;
+  --color-input-raw: 0.373 0.034 259.733;
+  --color-ring-raw: 0.623 0.214 259.815;
+
+  --color-primary-raw: 0.623 0.214 259.815;
+  --color-primary-soft-raw: 0.52 0.18 259.815;
+  --color-primary-foreground-raw: 0.985 0 0;
+
+  --color-secondary-raw: 0.26 0.012 260;
+  --color-secondary-foreground-raw: 0.205 0.01 260;
+
+  --color-accent-raw: 0.278 0.033 256.848;
+  --color-accent-foreground-raw: 0.985 0 0;
+
+  --color-highlight-raw: 0.56 0.12 255;
+  --color-highlight-foreground-raw: 0.985 0 0;
+
+  --color-destructive-raw: 0.505 0.213 27.518;
+  --color-destructive-foreground-raw: 0.985 0 0;
+
+  --color-success-raw: 0.7 0.13 145;
+  --color-success-foreground-raw: 0.13 0.02 160;
+
+  --color-warning-raw: 0.73 0.1 80;
+  --color-warning-foreground-raw: 0.2 0.02 80;
+
+  --color-info-raw: 0.65 0.14 240;
+  --color-info-foreground-raw: 0.13 0.02 240;
+
+  --color-background: oklch(var(--color-background-raw));
+  --color-surface: oklch(var(--color-surface-raw));
+  --color-surface-elevated: oklch(var(--color-surface-elevated-raw));
+  --color-surface-overlay: oklch(var(--color-surface-overlay-raw));
+
+  --color-foreground: oklch(var(--color-foreground-raw));
+  --color-foreground-muted: oklch(var(--color-foreground-muted-raw));
+
+  --color-border: oklch(var(--color-border-raw));
+  --color-border-strong: oklch(var(--color-border-strong-raw));
+  --color-input: oklch(var(--color-input-raw));
+  --color-ring: oklch(var(--color-ring-raw));
+
+  --color-primary: oklch(var(--color-primary-raw));
+  --color-primary-soft: oklch(var(--color-primary-soft-raw));
+  --color-primary-foreground: oklch(var(--color-primary-foreground-raw));
+
+  --color-secondary: oklch(var(--color-secondary-raw));
+  --color-secondary-foreground: oklch(var(--color-secondary-foreground-raw));
+
+  --color-accent: oklch(var(--color-accent-raw));
+  --color-accent-foreground: oklch(var(--color-accent-foreground-raw));
+
+  --color-highlight: oklch(var(--color-highlight-raw));
+  --color-highlight-foreground: oklch(var(--color-highlight-foreground-raw));
+
+  --color-destructive: oklch(var(--color-destructive-raw));
+  --color-destructive-foreground: oklch(var(--color-destructive-foreground-raw));
+
+  --color-success: oklch(var(--color-success-raw));
+  --color-success-foreground: oklch(var(--color-success-foreground-raw));
+
+  --color-warning: oklch(var(--color-warning-raw));
+  --color-warning-foreground: oklch(var(--color-warning-foreground-raw));
+
+  --color-info: oklch(var(--color-info-raw));
+  --color-info-foreground: oklch(var(--color-info-foreground-raw));
+
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-foreground);
+  --color-popover: var(--color-surface-elevated);
+  --color-popover-foreground: var(--color-foreground);
+  --color-muted: oklch(var(--color-surface-elevated-raw) / 0.8);
+  --color-muted-foreground: var(--color-foreground-muted);
+
+  --focus-ring-color-raw: var(--color-primary-raw);
+  --focus-ring-color: var(--color-primary);
+  --focus-ring-offset: 2px;
+  --focus-ring-width: 2px;
+
+  /* ===========================
+     Animations (Tailwind v4)
+     =========================== */
+
+  /* Core entrance animations - directional movement with fade */
+  --animate-fade-up: fade-up 800ms var(--ease-emphasized) both;
+  --animate-fade-down: fade-down 800ms var(--ease-emphasized) both;
+  --animate-fade-left: fade-left 800ms var(--ease-emphasized) both;
+  --animate-fade-right: fade-right 800ms var(--ease-emphasized) both;
+
+  /* Emphasis animations - for hero sections */
+  --animate-fade-scale: fade-scale 800ms var(--ease-emphasized) both;
+
+  /* Micro-interactions */
+  --animate-bounce: bounce 600ms var(--ease-bounce) both;
+
+  /* Special effects */
+  --animate-aurora: aurora 60s linear infinite;
+
+  /* Keyframe definitions */
+  /* Fade with directional slide - subtle 32px movement */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(32px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-down {
+    from {
+      opacity: 0;
+      transform: translateY(-32px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-left {
+    from {
+      opacity: 0;
+      transform: translateX(32px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-right {
+    from {
+      opacity: 0;
+      transform: translateX(-32px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes aurora {
+    from {
+      background-position: 50% 50%, 50% 50%;
+    }
+    to {
+      background-position: 350% 50%, 350% 50%;
+    }
+  }
+}
+
+/* ============================
+   Base Layer
+   ============================ */
+@layer base {
+  :root {
+    color-scheme: dark;
+    --shadow-base-xs: var(--shadow-xs);
+    --shadow-base-sm: var(--shadow-sm);
+    --shadow-base-md: var(--shadow-md);
+    --shadow-base-lg: var(--shadow-lg);
+    --spacing: var(--spacing-base);
+
+    --background: var(--color-background);
+    --foreground: var(--color-foreground);
+    --foreground-muted: var(--color-foreground-muted);
+    --surface: var(--color-surface);
+    --surface-elevated: var(--color-surface-elevated);
+    --surface-overlay: var(--color-surface-overlay);
+    --card: var(--color-card);
+    --card-foreground: var(--color-card-foreground);
+    --popover: var(--color-popover);
+    --popover-foreground: var(--color-popover-foreground);
+    --border: var(--color-border);
+    --border-strong: var(--color-border-strong);
+    --input: var(--color-input);
+    --ring: var(--color-ring);
+    --primary: var(--color-primary);
+    --primary-soft: var(--color-primary-soft);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --accent: var(--color-accent);
+    --accent-foreground: var(--color-accent-foreground);
+    --muted: var(--color-muted);
+    --muted-foreground: var(--color-muted-foreground);
+    --destructive: var(--color-destructive);
+    --destructive-foreground: var(--color-destructive-foreground);
+    --success: var(--color-success);
+    --success-foreground: var(--color-success-foreground);
+    --warning: var(--color-warning);
+    --warning-foreground: var(--color-warning-foreground);
+    --info: var(--color-info);
+    --info-foreground: var(--color-info-foreground);
+    --highlight: var(--color-highlight);
+    --highlight-foreground: var(--color-highlight-foreground);
+    --focus-ring: var(--focus-ring-color);
+    --focus-ring-offset-width: var(--focus-ring-offset);
+    --focus-ring-width-base: var(--focus-ring-width);
+    --opacity-disabled-base: var(--opacity-disabled);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  html {
+    block-size: 100%;
+    scroll-behavior: smooth;
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  body {
+    margin: 0;
+    min-block-size: 100%;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-body-md);
+    line-height: var(--font-line-height-body-md);
+    letter-spacing: var(--tracking-normal);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-variant-numeric: tabular-nums lining-nums;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    caret-color: var(--primary);
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 32%, transparent);
+    color: var(--primary-foreground);
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: var(--focus-ring-width-base) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset-width);
+    box-shadow: 0 0 0 calc(var(--focus-ring-width-base) * 0.25)
+      color-mix(in oklab, var(--focus-ring) 45%, transparent);
+  }
+
+  ::-moz-focus-inner {
+    border: 0;
+  }
+
+  .type-root {
+    font-family: var(--font-sans);
+    color: var(--foreground);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .type-h1 {
+    font-size: var(--font-size-display-lg);
+    line-height: var(--font-line-height-display-lg);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-tight);
+    scroll-margin-top: var(--space-20);
+  }
+
+  .type-h2 {
+    font-size: var(--font-size-heading-xl);
+    line-height: var(--font-line-height-heading-xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    scroll-margin-top: var(--space-16);
+  }
+
+  .type-h3 {
+    font-size: var(--font-size-heading-lg);
+    line-height: var(--font-line-height-heading-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    scroll-margin-top: var(--space-14);
+  }
+
+  .type-h4 {
+    font-size: var(--font-size-heading-sm);
+    line-height: var(--font-line-height-heading-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    scroll-margin-top: var(--space-12);
+  }
+
+  .type-lead {
+    font-size: var(--font-size-heading-md);
+    line-height: var(--font-line-height-body-lg);
+    font-weight: var(--font-weight-regular);
+    color: var(--foreground-muted);
+  }
+
+  .type-body-lg {
+    font-size: var(--font-size-body-lg);
+    line-height: var(--font-line-height-body-lg);
+  }
+
+  .type-body-md {
+    font-size: var(--font-size-body-md);
+    line-height: var(--font-line-height-body-md);
+  }
+
+  .type-body-sm {
+    font-size: var(--font-size-body-sm);
+    line-height: var(--font-line-height-body-sm);
+  }
+
+  .type-body-xs {
+    font-size: var(--font-size-body-xs);
+    line-height: var(--font-line-height-body-xs);
+  }
+
+  .type-label-sm {
+    font-size: var(--font-size-label-sm);
+    line-height: var(--font-line-height-label-sm);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .type-muted {
+    color: var(--muted-foreground);
+  }
+
+  .type-strong {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .type-code {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0.2rem 0.4rem;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-code);
+    line-height: var(--font-line-height-code);
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklab, var(--surface-elevated) 70%, transparent);
+    border: var(--border-width-hairline) solid color-mix(in oklab, var(--border) 45%, transparent);
+    color: var(--foreground);
+  }
+}
+
+/* ============================
+   Custom Utilities (Tailwind v4 @utility API)
+   ============================ */
+
+/* Animation utilities */
+@utility animate-fade-up {
+  animation: var(--animate-fade-up);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-fade-down {
+  animation: var(--animate-fade-down);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-fade-left {
+  animation: var(--animate-fade-left);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-fade-right {
+  animation: var(--animate-fade-right);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-fade-scale {
+  animation: var(--animate-fade-scale);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-bounce {
+  animation: var(--animate-bounce);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+
+/* Animation delay utilities - Tailwind v4 doesn't ship with these */
+@utility animation-delay-* {
+  animation-delay: --value(integer)ms;
+  animation-fill-mode: both;
+}
+
+/* ============================
+   Button Hover/Active Effects
+   ============================ */
+
+/* Direct CSS utilities (no @layer to avoid specificity issues) */
+
+/* Scale transforms */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
+/* Shadow elevations */
+.hover\:shadow-md-custom:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.hover\:shadow-lg-custom:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Glow effects */
+.hover\:shadow-primary-glow:hover {
+  box-shadow: var(--shadow-md), 0 0 20px oklch(var(--color-primary-raw) / 0.2);
+}
+
+.hover\:shadow-destructive-glow:hover {
+  box-shadow: var(--shadow-md), 0 0 20px oklch(var(--color-destructive-raw) / 0.2);
+}
+
+/* Outline button ring glow */
+.hover\:shadow-primary-ring:hover {
+  box-shadow: 0 0 0 3px oklch(var(--color-primary-raw) / 0.1);
+}
+
+/* Border color shifts */
+.hover\:border-primary-soft:hover {
+  border-color: oklch(var(--color-primary-raw) / 0.4);
+}
+
+/* ============================
+   Components Layer
+   ============================ */
+@layer components {
+  /* Progress bar with dynamic width via custom property */
+  .progress-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: inherit;
+    transition: width var(--duration-slow) ease-out;
+    width: var(--progress-width, 0%);
+  }
+
+  .progress-bar-animated {
+    animation: progress-pulse 2s ease-in-out infinite;
+  }
+
+}
+
+/* ============================
+   Modern Sleek Scrollbars
+   ============================ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Scrollbar corner (when both scrollbars visible) */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ============================
+   Command Palette (cmdk) Enhancements
+   ============================ */
+[cmdk-item] {
+  cursor: pointer;
+}
+
+[cmdk-item][data-selected="true"] {
+  background-color: oklch(var(--color-primary-raw) / 0.08);
+  color: var(--foreground);
+}
+
+[cmdk-item][data-selected="true"] svg {
+  color: var(--primary);
+}
+
+/* ============================
+   Required Field Asterisks
+   ============================ */
+.label-required::after {
+  content: '*';
+  margin-left: 0.125rem;
+  color: var(--destructive);
+  font-weight: var(--font-weight-medium);
+}

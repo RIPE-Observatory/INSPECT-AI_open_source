@@ -1,0 +1,191 @@
+# Production Docker Compose for INSPECT-AI on Hetzner
+# This extends the base docker-compose.yml and adds:
+# - Next.js frontend container
+# - Caddy reverse proxy with automatic SSL
+
+networks:
+  inspect-ai-network:
+    driver: bridge
+    name: inspect-ai-network
+
+services:
+  # SECURITY: Remove port mappings for production (Hetzner)
+  # Only Caddy (80/443) should be publicly accessible
+  # !reset tag clears inherited port mappings from docker-compose.yml
+  postgres:
+    ports: !reset []  # Remove public access - only via Docker network
+    mem_limit: "1.5g"
+    cpus: "0.75"
+
+  redis:
+    ports: !reset []  # Remove public access - only via Docker network
+
+  api:
+    ports: !reset []  # Remove public access - only via Caddy proxy
+    expose:
+      - "8000"  # Still accessible to Caddy/nextjs via Docker network
+    mem_limit: "2g"
+    cpus: "0.75"
+
+  grobid:
+    ports: !reset []  # Remove public access - only via Docker network
+    expose:
+      - "8070"
+      - "8071"
+    cpus: "2.5"
+    environment:
+      # Override JAVA_OPTS with larger heap (3GB instead of 1.5GB)
+      - JAVA_OPTS=-Xmx3000m -Xms1g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
+      - GROBID_THREADS=${GROBID_THREADS:-8}
+      - GROBID_POOL_MAX_WAIT=${GROBID_POOL_MAX_WAIT:-120}
+      - grobid__models__modelPreload=true
+      - grobid__3rdparty__pdf2xml__memory__limit__mb=${PDF_MEMORY_LIMIT:-2048}
+
+  # this is the orchestrator capacity for 3 concurrent job orchestrations
+  worker-orchestrator:
+    init: true
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue:orchestrator
+      - WORKER_MAX_JOBS=3
+    mem_limit: "2g"
+    cpus: "1.0"
+
+  # this is the grobid capacity for 3 concurrent PDFs 
+  worker-grobid:
+    init: true
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue:grobid
+      - WORKER_MAX_JOBS=3
+    mem_limit: "2500m"
+    cpus: "1.0"
+
+  # this is the default workers for LLM check processing
+  worker-default-1:
+    init: true
+    mem_limit: "2g"
+    cpus: "0.5"
+
+  worker-default-2:
+    init: true
+    mem_limit: "2g"
+    cpus: "0.5"
+
+  # this is the third default worker for handling LLM checks
+  worker-default-3:
+    user: "999:999"
+    image: inspect-ai-worker:latest
+    container_name: inspect_ai_worker_default_3
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - WORKER_QUEUE_NAME=arq:queue
+      - WORKER_MAX_JOBS=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage
+    shm_size: "1gb"
+    mem_limit: "2g"
+    cpus: "0.25"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+      - /home/worker/.cache:rw,noexec,nosuid
+    networks:
+      - inspect-ai-network
+
+  # frontend for the next.js application
+  nextjs:
+    build:
+      context: .
+      dockerfile: apps/ui/Dockerfile.production
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        # Pass NEXT_PUBLIC_* vars at build time (required for Next.js)
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/internal}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_CHECKS_PROFILE: ${NEXT_PUBLIC_CHECKS_PROFILE:-beta}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+        NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
+        NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST:-}
+    image: inspect-ai-nextjs:latest
+    container_name: inspect_ai_nextjs
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - INSPECT_API_URL=http://api:8000/api/v1
+      - BACKEND_BASE_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - pdf_storage:/app/pdf_storage:ro
+    mem_limit: "1.5g"
+    cpus: "1.0"
+    restart: unless-stopped
+    networks:
+      - inspect-ai-network
+    expose:
+      - "3000"
+
+  # reverse proxy for the caddy with automatic ssl
+  caddy:
+    image: caddy:2-alpine
+    container_name: inspect_ai_caddy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nextjs
+      - api
+    restart: unless-stopped
+    networks:
+      - inspect-ai-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "--header=Host:inspectai.app", "http://nextjs:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # EXISTING SERVICES (from docker-compose.yml)
+  # These are inherited from your base docker-compose.yml
+  # We just need to make sure they're on the same network
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  pdf_storage:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  grobid_cache:
+    driver: local

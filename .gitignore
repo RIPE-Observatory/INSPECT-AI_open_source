@@ -1,0 +1,228 @@
+# === Secrets and Environment Variables ===
+.env
+.env.*
+!.env.example
+.vscode/
+
+# === Frontend (ui/) ===
+
+.pnp/
+.yarn/*
+node_modules/
+
+# === Python Backend (src/) ===
+# Python bytecode / cache
+**/__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing and Coverage
+tmp/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Linting and Type Checking
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+.dmypy.json
+dmypy.json
+
+# Next.js
+apps/ui/.next/
+apps/ui/out/
+apps/ui/build/
+apps/ui/static/
+apps/ui/.vercel/
+apps/ui/storybook-static/
+
+# Turborepo cache
+.turbo/
+
+# Playwright artifacts
+playwright-report/
+test-results/
+trace.zip
+apps/ui/playwright-report/
+
+# TypeScript
+*.tsbuildinfo
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# === Database ===
+*.sqlite
+*.sqlite3
+*.db
+*.rdb
+
+# === IDE and Editors ===
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# === OS Generated Files ===
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+
+# === Project Specific ===
+# Cursor IDE
+.cursor/
+.cursorrules
+.clinerules
+*.mdc
+
+# Logs and Monitoring
+*.log
+.logfire/
+
+# Redis
+dump.rdb
+
+# Code Quality & Security Reports
+bandit-report.json
+pip-audit-report.json
+safety-report.json
+profile.stats
+*.prof
+
+# Benchmarking
+.benchmarks/
+benchmark-results/
+
+# Code Coverage Reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+coverage-reports/
+
+# Performance Profiling
+*.profile
+*.pstats
+cprofile-*
+
+# Pre-commit
+.pre-commit-config.yaml.bak
+.next/
+# Temporary development files
+*.tmp
+*.temp
+*.bak
+*.orig
+dev-*
+temp-*
+.turbo
+changelog/
+CLAUDE.md
+DEVELOPMENT.md
+.windsurfrules
+.taskmasterconfig
+.roomodes
+.roo
+.taskmaster/
+.markdownlint.json
+
+# Database files
+var/fetcher_state.db
+*.sqlite
+*.sqlite3
+
+# Python build artifacts
+src/backend.egg-info/
+*.egg-info/
+
+# TypeScript build cache
+ui/tsconfig.tsbuildinfo
+
+# Node.js
+ui/node_modules/
+ui/bun.lock
+
+# Specific docs to ignore
+docs/*
+!docs/plan.md
+.claude/
+# Sentry Config File
+.env.sentry-build-plugin
+
+# Embedded git repositories (separate projects)
+InspectAI-Ontology/
+knowledge/semopenalex/
+
+# Build artifacts
+backups/
+instrumentation-client.js
+instrumentation.js
+next.config.js
+sentry.edge.config.js
+sentry.server.config.js
+.playwright-mcp

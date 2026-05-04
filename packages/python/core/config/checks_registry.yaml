@@ -1,0 +1,166 @@
+# INSPECT-AI Checks Registry Configuration
+# This file defines all available checks and their configurations
+# Enable/disable checks for different deployment environments (beta, production, etc.)
+
+version: "1.0"
+
+# Public beta profile
+profiles:
+  beta_inspect_sr:
+    description: "Public beta environment - INSPECT-SR 1.1, 1.2, 1.3, 2.2 focus"
+    enabled_checks:
+      - grobid_metadata
+      - trial_llm_extraction
+      - timeline_consistency
+      - registry_crosscheck
+      - prospective_registration
+      - retraction_detection
+      - eoc_correction_detection
+      - author_retraction_history
+      - pubpeer_signal_analysis
+
+# Check definitions
+# Each check has metadata and configuration for ARQ task execution
+checks:
+  # Check 1: Trial ID Extraction (INSPECT-SR 1.1 prerequisite)
+  trial_llm_extraction:
+    display_name: "Trial ID Extraction"
+    description: "Extract trial registry ID and type from PDF using LLM"
+    check_number: "1"
+    inspect_sr_mapping: "prerequisite for 2.2"
+    task_name: "task_trial_llm_extraction"
+    queue: "default"
+    timeout: 45
+    max_tries: 3
+    dependencies: []
+    phase: 1  # Execution phase (1=first wave, 2=second wave, etc.)
+    executor: "arq"
+
+  # Check 2: Registry Crosscheck (INSPECT-SR 2.2 component)
+  registry_crosscheck:
+    display_name: "Registry Crosscheck"
+    description: "Lookup trial in registry and extract registration date"
+    check_number: "2"
+    inspect_sr_mapping: "2.2"
+    task_name: "task_registry_crosscheck"
+    queue: "default"
+    timeout: 30
+    max_tries: 3
+    dependencies:
+      - trial_llm_extraction
+    phase: 2
+    executor: "inline"
+
+  # Check 3: Timeline Consistency (INSPECT-SR 2.2 component)
+  timeline_consistency:
+    display_name: "Study Timeline Extraction"
+    description: "Extract study dates (recruitment start, etc.) from PDF"
+    check_number: "3"
+    inspect_sr_mapping: "2.2"
+    task_name: "task_timeline_consistency"
+    queue: "default"
+    timeout: 45
+    max_tries: 3
+    dependencies: []
+    phase: 1
+    executor: "arq"
+
+  # Check 4/5: GROBID Metadata (needed for DOI extraction for retractions)
+  grobid_metadata:
+    display_name: "GROBID Metadata Extraction"
+    description: "Extract DOI and references from PDF using GROBID"
+    check_number: "4"
+    inspect_sr_mapping: "prerequisite for 1.1, 1.2"
+    task_name: "task_grobid_metadata"
+    queue: "grobid"
+    timeout: 120
+    max_tries: 3
+    dependencies: []
+    phase: 1
+    executor: "arq"
+
+  # Check 6: Prospective Registration Analysis (INSPECT-SR 2.2)
+  prospective_registration:
+    display_name: "Prospective Registration Analysis"
+    description: "Compare registration date vs recruitment start date"
+    check_number: "6"
+    inspect_sr_mapping: "2.2"
+    task_name: "task_prospective_registration"
+    queue: "default"
+    timeout: 30
+    max_tries: 3
+    dependencies:
+      - registry_crosscheck
+      - timeline_consistency
+    phase: 3
+    executor: "inline"
+
+  # Check 7: Retraction Detection (INSPECT-SR 1.1)
+  retraction_detection:
+    display_name: "Retraction Detection"
+    description: "Check main article and references for retractions in Retraction Watch database"
+    check_number: "7"
+    inspect_sr_mapping: "1.1"
+    task_name: "task_retraction_detection"
+    queue: "default"
+    timeout: 30
+    max_tries: 3
+    dependencies:
+      - grobid_metadata
+    phase: 2
+    executor: "inline"
+
+  # Check 8: Expression of Concern & Correction Detection (INSPECT-SR 1.2)
+  eoc_correction_detection:
+    display_name: "Expression of Concern & Correction Detection"
+    description: "Check main article for expressions of concern and corrections in Retraction Watch database"
+    check_number: "8"
+    inspect_sr_mapping: "1.2"
+    task_name: "task_eoc_correction_detection"
+    queue: "default"
+    timeout: 30
+    max_tries: 3
+    dependencies:
+      - grobid_metadata
+    phase: 2
+    executor: "inline"
+
+  # Check 9: Author Retraction History (INSPECT-SR 1.3)
+  author_retraction_history:
+    display_name: "Author Retraction History"
+    description: "Check author publication history for retractions (20 most recent per author)"
+    check_number: "9"
+    inspect_sr_mapping: "1.3"
+    task_name: "task_author_retraction_history"
+    queue: "default"
+    timeout: 30
+    max_tries: 3
+    dependencies:
+      - grobid_metadata
+    phase: 2
+    executor: "inline"
+
+  # Check 10: PubPeer Signal Analysis (INSPECT-SR 1.2)
+  pubpeer_signal_analysis:
+    display_name: "PubPeer Signal Analysis"
+    description: "Extract community comments from PubPeer"
+    check_number: "10"
+    inspect_sr_mapping: "1.2"
+    task_name: "task_pubpeer_analysis"
+    queue: "default"
+    timeout: 90
+    max_tries: 3
+    dependencies:
+      - grobid_metadata
+    phase: 2
+    executor: "inline"
+
+# Queue configurations
+queues:
+  default:
+    description: "Main worker queue for standard checks"
+    max_jobs: 3
+
+  grobid:
+    description: "Dedicated queue for GROBID tasks (memory-intensive)"
+    max_jobs: 1
