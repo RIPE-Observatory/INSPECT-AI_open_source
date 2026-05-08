@@ -70,33 +70,25 @@ cd INSPECT-AI
 cp .env.example .env
 ```
 
-edit `.env` and set these required values:
+For reproducible local/paper runs, edit `.env` and set one required value:
 
 ```bash
 # llm api (required)
 OPENROUTER_API_KEY=your-openrouter-api-key
 
-# monitoring (required)
-LOGFIRE_TOKEN=your-logfire-write-token      # from logfire.pydantic.dev
-
-# database (change the password!)
-POSTGRES_PASSWORD=your-secure-password-here
-DATABASE_URL=postgresql+asyncpg://inspect_user:your-secure-password-here@postgres:5432/inspect_ai
-
-# auth - clerk (required for frontend)
-CLERK_JWKS_URL=https://your-domain.clerk.accounts.dev/.well-known/jwks.json
-CLERK_ISSUER=https://your-domain.clerk.accounts.dev
+# auth disabled for reproducibility
+DISABLE_AUTH=true
+NEXT_PUBLIC_DISABLE_AUTH=true
 ```
 
-create `apps/ui/.env.local` for frontend:
+If running the frontend outside Docker, create `apps/ui/.env.local`:
 
 ```bash
-# clerk frontend keys
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-
 # api connection
 NEXT_PUBLIC_API_BASE_URL=/api/internal
+
+# auth disabled for reproducibility
+NEXT_PUBLIC_DISABLE_AUTH=true
 
 # checks profile
 NEXT_PUBLIC_CHECKS_PROFILE=beta
@@ -104,131 +96,27 @@ NEXT_PUBLIC_CHECKS_PROFILE=beta
 
 ---
 
-### step 2: build docker images
+### step 2: start the full app
 
 ```bash
-# build all images (api, worker, grobid)
-docker compose build
-
-# this builds:
-# - inspect-ai-api:latest
-# - inspect-ai-worker:latest
-# - inspect-ai-grobid:0.8.2
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
----
-
-### step 3: start infrastructure services
+this builds the api, workers, grobid, and next.js frontend, starts postgres and redis, and runs database migrations automatically before the api and workers start.
 
 ```bash
-# start postgres, redis, and grobid
-docker compose up -d postgres redis grobid
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 ```
 
-wait for services to be healthy:
+all long-running services should show as "running" or "healthy". the one-shot `migrate` container should show as exited successfully.
 
-```bash
-# check status
-docker compose ps
-
-# you should see postgres and redis as "healthy"
-# grobid takes ~2 minutes to start (model loading)
-docker compose logs -f grobid
-```
-
----
-
-### step 4: run database migrations
-
-the database needs to be migrated before starting the api.
-
-```bash
-cd apps/api
-
-# create virtual environment and install dependencies
-uv sync
-
-# activate the virtual environment
-source .venv/bin/activate  # linux/mac
-# .venv\Scripts\Activate.ps1  # windows powershell
-
-# IMPORTANT: set the host override for running from your machine
-# (docker uses 'postgres' as hostname, but from host you need localhost)
-export ALEMBIC_DB_HOST=localhost
-
-# run migrations
-alembic upgrade head
-
-cd ../..
-```
-
-you should see output like:
-```
-INFO  [alembic.runtime.migration] Running upgrade  -> 53bd03ba16c6, initial complete schema
-INFO  [alembic.runtime.migration] Running upgrade 53bd03ba16c6 -> ...
-```
-
----
-
-### step 5: load retraction watch data
-
-the retraction detection feature requires the retraction watch database to be loaded.
-
-```bash
-cd apps/api
-source .venv/bin/activate
-
-# set database host for local connection
-export DATABASE_URL=postgresql+asyncpg://inspect_user:your-password@localhost:5432/inspect_ai
-
-# load the data (takes ~30 seconds)
-python -m core.db.load_retraction_data
-
-cd ../..
-```
-
-you should see:
-```
-✓ Loaded 50,000+ retractions with 150,000+ author entries
-✓ DATA LOAD COMPLETED SUCCESSFULLY
-```
-
----
-
-### step 6: start all services
-
-```bash
-# start api and workers
-docker compose up -d api worker-orchestrator worker-default-1 worker-default-2 worker-grobid
-```
-
-verify everything is running:
-
-```bash
-docker compose ps
-```
-
-all services should show as "running" or "healthy".
-
----
-
-### step 7: start the frontend
-
-```bash
-cd apps/ui
-bun install
-bun run dev
-```
-
----
-
-### step 8: access the app
+### step 3: access the app
 
 | service | url | notes |
 |---------|-----|-------|
 | **frontend** | http://localhost:3000 | main app |
-| **api docs** | http://localhost:8000/docs | openapi spec |
-| **grobid** | http://localhost:8070 | pdf extraction |
+| **api** | internal docker service | proxied through the frontend at `/api/internal` |
+| **grobid** | internal docker service | pdf extraction |
 
 ---
 
@@ -293,19 +181,15 @@ alembic upgrade head
 | variable | description |
 |----------|-------------|
 | `OPENROUTER_API_KEY` | OpenRouter-compatible API key for LLM checks |
-| `LOGFIRE_TOKEN` | monitoring/observability token |
-| `POSTGRES_PASSWORD` | database password (change from default!) |
-| `CLERK_JWKS_URL` | clerk jwt verification url |
-| `CLERK_ISSUER` | clerk issuer url |
+| `DISABLE_AUTH` | set `true` for reproducible local/paper runs |
 
 ### frontend (apps/ui/.env.local)
 
 | variable | description |
 |----------|-------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | clerk public key |
-| `CLERK_SECRET_KEY` | clerk secret key |
 | `NEXT_PUBLIC_API_BASE_URL` | api proxy path (use `/api/internal`) |
 | `NEXT_PUBLIC_CHECKS_PROFILE` | `beta` |
+| `NEXT_PUBLIC_DISABLE_AUTH` | set `true` for reproducible local/paper runs |
 
 ### optional
 

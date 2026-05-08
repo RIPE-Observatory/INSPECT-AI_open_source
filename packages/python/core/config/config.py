@@ -109,6 +109,17 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("LOGFIRE_TOKEN", "logfire_token")
     )
 
+    # Paper/demo mode. When enabled, API routes use a deterministic local reviewer
+    # instead of requiring Clerk JWT verification.
+    DISABLE_AUTH: bool = Field(
+        default=False,
+        description="Disable Clerk auth and use a local demo reviewer",
+    )
+    DEMO_REVIEWER_ID: str = Field(
+        default="inspect_demo_reviewer",
+        description="Stable reviewer identifier used when DISABLE_AUTH=true",
+    )
+
     # Clerk configuration for backend auth verification
     CLERK_JWKS_URL: Optional[str] = Field(
         default=None,

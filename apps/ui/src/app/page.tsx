@@ -9,19 +9,114 @@ import { useEffect, useState } from "react";
 import { AppFooter } from "@/components/layout/page";
 import { AuroraBackground } from "@/components/ui/shadcn-io/aurora-background";
 import { AuroraErrorBoundary } from "@/components/ui/shadcn-io/aurora-background/error-boundary";
+import { isAuthDisabled } from "@/lib/auth-mode";
 import { Button, Card, CardContent, Typography } from "@inspect/ui";
 
-export default function LandingPage() {
+function StartCard({ name }: { name?: string }) {
+  const handleAnalyzeClick = () => {
+    window.open("/analyze", "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <>
+      <div className="animate-fade-right animation-delay-350">
+        <Typography variant="h3">
+          Start investigating,{" "}
+          <span className="text-highlight">
+            {name || "there"}
+          </span>
+        </Typography>
+      </div>
+
+      <Typography
+        variant="body-md"
+        tone="muted"
+        className="max-w-2xl animate-fade-up animation-delay-450"
+      >
+        Upload clinical trial PDFs to run automated integrity checks against INSPECT-SR tool.
+      </Typography>
+
+      <div
+        className="flex w-full max-w-md flex-col gap-4 animate-fade-up animation-delay-600"
+      >
+        <Button
+          variant="default"
+          size="lg"
+          onClick={handleAnalyzeClick}
+          className="w-full"
+        >
+          <Zap className="h-5 w-5" />
+          Start INSPECT-AI
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function AuthenticatedLandingContent() {
   const { user } = useUser();
+
+  return (
+    <>
+      <SignedIn>
+        <StartCard name={user?.firstName || user?.username || undefined} />
+      </SignedIn>
+
+      <SignedOut>
+        <Card
+          variant="elevated"
+          className="w-full max-w-md text-center animate-fade-scale animation-delay-450"
+        >
+          <CardContent className="p-8 space-y-6">
+            <div className="space-y-4">
+              <Typography variant="h3">Get Started</Typography>
+              <Typography variant="body-md" tone="muted">
+                Sign up to start analyzing clinical trials with automated checks for
+                integrity concerns.
+              </Typography>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Link href="/sign-up" className="w-full">
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="w-full"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Create Account
+                </Button>
+              </Link>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-border/70" />
+                <Typography variant="body-sm" tone="muted">
+                  Already have an account?
+                </Typography>
+                <div className="flex-1 border-t border-border/70" />
+              </div>
+              <Link href="/sign-in" className="w-full">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </SignedOut>
+    </>
+  );
+}
+
+export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const handleAnalyzeClick = () => {
-    window.open("/analyze", "_blank", "noopener,noreferrer");
-  };
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -79,102 +174,7 @@ export default function LandingPage() {
             <span className="text-highlight">I</span>
           </Typography>
 
-          {mounted && (
-            <>
-              <SignedIn>
-                {/* Welcome Message */}
-                <div className="animate-fade-right animation-delay-350">
-                  <Typography variant="h3">
-                    Start investigating,{" "}
-                    <span className="text-highlight">
-                      {user?.firstName || user?.username || "there"}
-                    </span>
-                  </Typography>
-                </div>
-
-                {/* Description */}
-                <Typography
-                  variant="body-md"
-                  tone="muted"
-                  className="max-w-2xl animate-fade-up animation-delay-450"
-                >
-                  Upload clinical trial PDFs to run automated integrity checks against INSPECT-SR tool.
-                </Typography>
-
-                {/* Action Buttons */}
-                <div
-                  className="flex w-full max-w-md flex-col gap-4 animate-fade-up animation-delay-600"
-                >
-                  <Button
-                    variant="default"
-                    size="lg"
-                    onClick={handleAnalyzeClick}
-                    className="w-full"
-                  >
-                    <Zap className="h-5 w-5" />
-                    Start INSPECT-AI
-                  </Button>
-                  {/* Temporarily disabled for beta */}
-                  {/* <Button
-                    variant="surface"
-                    size="lg"
-                    onClick={handleChecklistClick}
-                    className="w-full"
-                  >
-                    <CheckSquare className="h-5 w-5 text-success" />
-                    Open INSPECT-SR Tool
-                  </Button> */}
-                </div>
-              </SignedIn>
-
-              <SignedOut>
-                {/* Sign Up/Sign In Card */}
-                <Card
-                  variant="elevated"
-                  className="w-full max-w-md text-center animate-fade-scale animation-delay-450"
-                >
-                  <CardContent className="p-8 space-y-6">
-                    <div className="space-y-4">
-                      <Typography variant="h3">Get Started</Typography>
-                      <Typography variant="body-md" tone="muted">
-                        Sign up to start analyzing clinical trials with automated checks for
-                        integrity concerns.
-                      </Typography>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                      <Link href="/sign-up" className="w-full">
-                        <Button
-                          variant="default"
-                          size="lg"
-                          className="w-full"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                          Create Account
-                        </Button>
-                      </Link>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 border-t border-border/70" />
-                        <Typography variant="body-sm" tone="muted">
-                          Already have an account?
-                        </Typography>
-                        <div className="flex-1 border-t border-border/70" />
-                      </div>
-                      <Link href="/sign-in" className="w-full">
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                        >
-                          <LogIn className="h-4 w-4" />
-                          Sign In
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              </SignedOut>
-            </>
-          )}
+          {mounted && (isAuthDisabled() ? <StartCard name="demo reviewer" /> : <AuthenticatedLandingContent />)}
           </div>
         </AuroraBackground>
       </AuroraErrorBoundary>

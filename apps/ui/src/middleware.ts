@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isAuthDisabled } from "@/lib/auth-mode";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -18,7 +19,14 @@ function isBotProbe(request: NextRequest): boolean {
   return BOT_PROBE_PATHS.some((probe) => path.startsWith(probe));
 }
 
-export default clerkMiddleware(async (auth, request) => {
+const demoMiddleware = (request: NextRequest) => {
+  if (isBotProbe(request)) {
+    return new NextResponse(null, { status: 404 });
+  }
+  return NextResponse.next();
+};
+
+const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
   // Block known bot probe paths early — prevents FormData parsing errors
   if (isBotProbe(request)) {
     return new NextResponse(null, { status: 404 });
@@ -38,6 +46,8 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 });
+
+export default isAuthDisabled() ? demoMiddleware : authenticatedMiddleware;
 
 export const config = {
   matcher: [

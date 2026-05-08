@@ -2,6 +2,7 @@ import { GlobalUserAvatar } from "@/components/auth/global-user-avatar";
 import { ProfileOnboardingModal } from "@/components/onboarding/profile-onboarding-modal";
 import { QueryProvider } from "@/components/query-client-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { isAuthDisabled } from "@/lib/auth-mode";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { GeistMono } from "geist/font/mono";
@@ -51,27 +52,35 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const body = (
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          forcedTheme="dark"
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            {!isAuthDisabled() && <GlobalUserAvatar />}
+            {children}
+            {!isAuthDisabled() && <ProfileOnboardingModal />}
+            <Toaster />
+          </QueryProvider>
+        </ThemeProvider>
+        <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
+      </body>
+    </html>
+  );
+
+  if (isAuthDisabled()) {
+    return body;
+  }
+
   return (
     <ClerkProvider appearance={clerkAppearance}>
-      <html lang="en" className="dark" suppressHydrationWarning>
-        <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            forcedTheme="dark"
-            disableTransitionOnChange
-          >
-            <QueryProvider>
-              <GlobalUserAvatar />
-              {children}
-              <ProfileOnboardingModal />
-              <Toaster />
-            </QueryProvider>
-          </ThemeProvider>
-          <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
-        </body>
-      </html>
+      {body}
     </ClerkProvider>
   );
 }

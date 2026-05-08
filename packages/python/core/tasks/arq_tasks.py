@@ -543,7 +543,9 @@ async def _run_task_logic(
 
         finally:
             final_error_message = (
-                "; ".join(error_messages_for_job) if error_messages_for_job else None
+                "; ".join(error_messages_for_job)
+                if current_job_status == JobStatusEnum.FAILED and error_messages_for_job
+                else None
             )
             logger.info(
                 f"Normalizing results for job {job_id} with final status: {current_job_status.name}."
@@ -978,4 +980,3 @@ async def _execute_post_publication_chain(
                     }
 
     return chain_results
-
