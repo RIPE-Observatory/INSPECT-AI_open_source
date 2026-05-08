@@ -26,7 +26,6 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: inspect_ai_postgres
-    user: "999:999"
     env_file:
       - path: .env
         required: false
@@ -91,6 +90,9 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      DISABLE_AUTH: ${DISABLE_AUTH:-true}
+      DEMO_REVIEWER_ID: ${DEMO_REVIEWER_ID:-inspect_demo_reviewer}
     ports:
       # Map host port ${API_PORT} (default 8000) to container port 8000 (Uvicorn)
       - "${API_PORT:-8000}:8000"
@@ -101,6 +103,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - pdf_storage:/app/pdf_storage # Mount shared PDF volume
     shm_size: "1gb"
@@ -125,6 +129,19 @@ services:
     networks:
       - inspect-ai-network
 
+  migrate:
+    image: inspect-ai-api:latest
+    env_file:
+      - path: .env
+        required: false
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - inspect-ai-network
+
   # worker image builder (run with: docker compose build worker-image)
   worker-image:
     build:
@@ -139,6 +156,12 @@ services:
   # worker services (use pre-built worker-image)
   worker-orchestrator:
     user: "999:999"
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
     image: inspect-ai-worker:latest
     env_file:
       - path: .env
@@ -153,6 +176,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - pdf_storage:/app/pdf_storage
     shm_size: "1gb"
@@ -172,6 +197,12 @@ services:
   # Default queue workers - scaled to 2 instances for better concurrency
   worker-default-1:
     user: "999:999"
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
     image: inspect-ai-worker:latest
     container_name: inspect_ai_worker_default_1
     env_file:
@@ -187,6 +218,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - pdf_storage:/app/pdf_storage
     shm_size: "1gb"
@@ -205,6 +238,12 @@ services:
 
   worker-default-2:
     user: "999:999"
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
     image: inspect-ai-worker:latest
     container_name: inspect_ai_worker_default_2
     env_file:
@@ -220,6 +259,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - pdf_storage:/app/pdf_storage
     shm_size: "1gb"
@@ -239,6 +280,12 @@ services:
   # Dedicated worker for GROBID tasks (Check 4/5)
   worker-grobid:
     user: "999:999"
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
     image: inspect-ai-worker:latest
     env_file:
       - path: .env
@@ -253,6 +300,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       grobid:
         condition: service_healthy
     volumes:
@@ -289,7 +338,7 @@ services:
         required: false
     environment:
       # Java memory settings - CRF
-      - JAVA_OPTS=-Xmx1500m -Xms512m -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
+      - JAVA_OPTS=-Xmx1500m -Xms512m -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:-UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
 
       # GROBID server settings - from .env
       - GROBID_THREADS=${GROBID_THREADS:-4}

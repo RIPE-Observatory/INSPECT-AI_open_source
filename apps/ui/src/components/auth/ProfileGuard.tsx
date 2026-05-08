@@ -4,8 +4,17 @@ import { useUser } from "@clerk/nextjs";
 import { useReviewerProfile } from "@inspect/api-client";
 import { Typography } from "@inspect/ui";
 import { Loader } from "lucide-react";
+import { isAuthDisabled } from "@/lib/auth-mode";
 
 export function ProfileGuard({ children }: { children: React.ReactNode }) {
+  if (isAuthDisabled()) {
+    return <>{children}</>;
+  }
+
+  return <AuthenticatedProfileGuard>{children}</AuthenticatedProfileGuard>;
+}
+
+function AuthenticatedProfileGuard({ children }: { children: React.ReactNode }) {
   const { isLoaded } = useUser();
   const { data: reviewer, isLoading, error } = useReviewerProfile();
 

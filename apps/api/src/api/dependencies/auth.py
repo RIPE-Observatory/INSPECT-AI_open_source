@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Header, HTTPException, status
 from jose import jwt
 from jose.exceptions import JWTClaimsError, JWTError
 
@@ -134,8 +134,19 @@ class AuthenticatedUser:
 
 async def get_current_user(
     authorization: Optional[str] = Header(default=None),
-    verifier: ClerkTokenVerifier = Depends(get_token_verifier),
 ) -> AuthenticatedUser:
+    settings = get_settings()
+    if settings.DISABLE_AUTH:
+        return AuthenticatedUser(
+            clerk_user_id=settings.DEMO_REVIEWER_ID,
+            session_id="demo_session",
+            claims={
+                "sub": settings.DEMO_REVIEWER_ID,
+                "sid": "demo_session",
+                "auth_disabled": True,
+            },
+        )
+
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header missing"
@@ -148,6 +159,7 @@ async def get_current_user(
             detail="Bearer authorization header required",
         )
 
+    verifier = get_token_verifier()
     claims = await verifier.verify(token)
     clerk_user_id = claims.get("sub")
     if not clerk_user_id:

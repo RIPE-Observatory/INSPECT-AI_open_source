@@ -35,7 +35,7 @@ services:
     cpus: "2.5"
     environment:
       # Override JAVA_OPTS with larger heap (3GB instead of 1.5GB)
-      - JAVA_OPTS=-Xmx3000m -Xms1g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
+      - JAVA_OPTS=-Xmx3000m -Xms1g -Dfile.encoding=UTF-8 -XX:+UseG1GC -XX:-UseContainerSupport -XX:MaxGCPauseMillis=200 -XX:MinHeapFreeRatio=20 -XX:MaxHeapFreeRatio=40
       - GROBID_THREADS=${GROBID_THREADS:-8}
       - GROBID_POOL_MAX_WAIT=${GROBID_POOL_MAX_WAIT:-120}
       - grobid__models__modelPreload=true
@@ -73,6 +73,12 @@ services:
   # this is the third default worker for handling LLM checks
   worker-default-3:
     user: "999:999"
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.worker
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+        PYTHON_IMAGE: python:3.12-slim
     image: inspect-ai-worker:latest
     container_name: inspect_ai_worker_default_3
     env_file:
@@ -86,6 +92,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - pdf_storage:/app/pdf_storage
     shm_size: "1gb"
@@ -115,6 +123,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/internal}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
         NEXT_PUBLIC_CHECKS_PROFILE: ${NEXT_PUBLIC_CHECKS_PROFILE:-beta}
+        NEXT_PUBLIC_DISABLE_AUTH: ${NEXT_PUBLIC_DISABLE_AUTH:-true}
         NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
         NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
         NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY:-}
@@ -127,6 +136,7 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_DISABLE_AUTH=${NEXT_PUBLIC_DISABLE_AUTH:-true}
       - INSPECT_API_URL=http://api:8000/api/v1
       - BACKEND_BASE_URL=http://api:8000
     depends_on:
@@ -134,6 +144,8 @@ services:
         condition: service_healthy
     volumes:
       - pdf_storage:/app/pdf_storage:ro
+    ports:
+      - "${UI_PORT:-3000}:3000"
     mem_limit: "1.5g"
     cpus: "1.0"
     restart: unless-stopped
