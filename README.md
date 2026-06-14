@@ -1,4 +1,5 @@
 # INSPECT-AI
+[![DOI](https://zenodo.org/badge/1212650556.svg)](https://doi.org/10.5281/zenodo.20690738)
 
 INSPECT-AI is a human-in-the-loop LLM system for supporting research integrity assessments of published clinical trial reports. It helps reviewers inspect a trial publication, gather relevant external info, complete INSPECT-SR assessment checks, and record the reasoning behind automated and human-reviewed outcomes.
 
