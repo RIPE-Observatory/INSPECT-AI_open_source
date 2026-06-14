@@ -50,6 +50,8 @@ tools/                     Utility and migration scripts
 | Infrastructure | Docker, Caddy |
 | Package management | `uv` for Python, `bun` for JavaScript/TypeScript |
 
+LLM prompts, schemas, service flow, and check wiring are indexed in [LLM_GUIDE.md](./LLM_GUIDE.md).
+
 ## Getting Started
 
 See [GETTING_STARTED.md](./GETTING_STARTED.md) for local setup and deployment instructions.
@@ -89,7 +91,7 @@ INSPECT-AI produces structured assessment records from a human review workflow. 
 
 ## License
 
-See the license file in this repository for licensing information.
+This work is licensed under the Creative Commons Attribution 4.0 International License. See [LICENSE.md](LICENSE.md) for details.
 
 ## Contributing
 

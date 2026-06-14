@@ -1,6 +1,6 @@
 [project]
 name = "inspect-ai-core"
-version = "0.1.0"
+version = "1.0.0"
 description = "Core domain logic and shared services for INSPECT AI"
 requires-python = ">=3.10"
 dependencies = [

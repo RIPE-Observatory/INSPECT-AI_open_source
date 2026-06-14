@@ -1125,7 +1125,7 @@ wheels = [
 
 [[package]]
 name = "inspect-ai-api"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1210,7 +1210,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "inspect-ai-core"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "../../packages/python/core" }
 dependencies = [
     { name = "aiofiles" },

@@ -77,6 +77,6 @@ USER appuser
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-LABEL org.opencontainers.image.source="https://github.com/your-org/inspect-ai" \
+LABEL org.opencontainers.image.source="https://github.com/RIPE-Observatory/INSPECT-AI_open_source" \
       org.opencontainers.image.description="INSPECT-AI API service" \
-      org.opencontainers.image.licenses="Proprietary"
+      org.opencontainers.image.licenses="CC-BY-4.0"

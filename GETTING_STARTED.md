@@ -65,8 +65,8 @@ INSPECT-AI/
 ### step 1: clone and configure
 
 ```bash
-git clone https://github.com/Discovery-of-fabricated-clinical-trials/INSPECT-AI.git
-cd INSPECT-AI
+git clone https://github.com/RIPE-Observatory/INSPECT-AI_open_source.git
+cd INSPECT-AI_open_source
 cp .env.example .env
 ```
 
