@@ -96,4 +96,4 @@ This work is licensed under the Creative Commons Attribution 4.0 International L
 
 ## Contributing
 
-Please keep changes focused and include the relevant checks for the part of the system being modified. Frontend changes should pass the TypeScript and lint checks; backend changes should pass the Python linting and test commands described in the setup guide.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing changes to the application, checks, documentation, or deployment files.
